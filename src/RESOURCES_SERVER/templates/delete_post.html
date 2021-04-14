@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block title %}Delete Post{% endblock %}
+{% block content %}
+{% if user.is_authenticated %}
+    {% if user.id == post.author.id %}
+        <h3>Delete {{ post.title }} ?</h3>
+        <br>
+
+        <div class="form-group">
+            <form method="POST">
+                {% csrf_token %}
+                <button class="btn btn-danger">Delete</button>
+            </form>
+        </div>
+    {% else %}  
+        This view not allowed. User is not authenticated. please login.    
+    {% endif %}
+{% else %}
+        <br>
+        This view not allowed. User is not authenticated. please login.   
+{% endif %}
+{% endblock %}

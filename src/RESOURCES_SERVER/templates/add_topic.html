@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block title %}Add Topic{% endblock %}
+{% block content %}
+{% if user.is_authenticated %}
+    <h1>Add Topic...</h1>
+    <br>
+    <br>
+    <div class="form-group">
+        <form method="POST">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button class="btn btn-secondary">Add Topic</button>
+        </form>
+    </div>
+{% else %}
+        <br>
+        This view not allowed. User is not authenticated. please login.   
+{% endif %}
+{% endblock %}

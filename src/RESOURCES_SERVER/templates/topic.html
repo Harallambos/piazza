@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+    {% if topic_post %}
+        <h1>{{ topic }}</h1>
+        <ul>
+        {% for post in topic_post %}
+            <li>
+                <a href="{% url 'article_details' post.pk %}">{{ post.title }}</a> | {{ post.author }} | {{ post.date }}
+                    {% if user.is_authenticated %}
+                        {% if user.id == post.author.id %}
+                            <a href="{% url 'update_post' post.pk %}">Edit</a>
+                            <a href="{% url 'delete_post' post.pk %}">Delete</a>
+                        {% endif %}     
+                    {% endif %}
+                <br>
+                {{ post.content | slice:":100" | safe}}
+                <br>
+                Likes: {{ post.total_likes }} - {{ post.post_status }}
+                <hr>
+            </li>
+        {% endfor %}
+        </ul>
+    {% else %}
+        <h2>This page does not exist...</h2>
+    {% endif %}
+
+
+{% endblock %}
