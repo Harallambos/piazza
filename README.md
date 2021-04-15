@@ -1,25 +1,3 @@
-CONTENTS
-
-ABSTRACT……………………………………………………….…………………………………………….……..………………..................................................................3
-INTRODUCTION……………………………………………………............................................................................................4
-PREPARATION PHASE: INSTALL AND CONFIGURE DJANGO AND DEPLOY SOFTWARE IN VIRTUALISED ENVIRONMENTS )….……………………………………………………………..7
-PHASE 1: DEVELOPMENT OF AUTHORISATION AND AUTHENTICATION SERVICES (PIAZZA_API)……………………………………………………………………….….….……….……………………….8
-PHASE 2: DEVELOPMENT OF PIAZZA RESTFUL API (AUTH_SERVER)………………………..….……...................................................…12
-PHASE 3: DEVELOPMENT OF RESOUCE APPLICATION (RESOURCE_SERVER) (AUTH_SERVER)….…………………………………………………………………………………………………….……....…20
-PHASE 4: DEVELOPMENT OF APPLICATION BROWSER…………………………………..………………….........................................................…30
-TEST CASES……………………………….…………….…………………………………………………………………….................................................................….…31
-CODE…………………………..……………………….………………………………………………….…………………...................................................................………53
-AUTH_SERVER CODE……………………………..………………………………………………………………..………................................................................…58
-RESOURCES_SERVER CODE……………………………….………………………………………………………….…................................................................…20
-PIAZZA_APICODE……………………………..……………………………………………………………...……..…………..............................................................58
-
-
-
-
-
-
-
-
 ABSTRACT
 
 In this coursework we have developed a RESTful SaaS for a system system called Piazza using the Django RESTful API framework. In Piazza, users post messages for a particular topic while other users browse posts per topic and perform basic interactions, including like and add a comment. We are using the OAuth 2.0 protocol which is the industry-standard for authorization. 
@@ -734,11 +712,162 @@ It contains:
  
 AUTH_SERVER
  
+
+•	forms.py : in this file we have 3 classes. 
+class SignUpForm            the form for our user registration html page
+class EditProfileForm	  for to edit the edit profile html page
+class PasswordsChaneForm     the form for our password change html page
+
+•	urls.py : in this file we have 8 urls. 
+urlpatterns = [
+
+# PIAZZA website url endpoints
+path('registration/', UserRegisterView.as_view(), name='registration'),
+path('edit_profile/', UserEditView.as_view(), name='edit_profile')
+path('password/', PasswordsChangeView.as_view(template_name='registration/change-password.html')),
+path('password_success', views.password_success, name="password_success"),
+	# API url endpoins
+path('register/', views.register), 
+path('token/', views.token), 
+path('token/refresh/', views.refresh_token), 
+path('token/revoke/', views.revoke_token),
+]
+•	views.py : in this file we have 3 classes. 
+In this views.py is where we need to add our applications client id and client secret.
+CLIENT_ID = '8RPubhMrs7GZHVrFe4AvcTAXAvCFOJFyvwHKhZQH'
+CLIENT_SECRET = '2coWq1bb0cnP4zviaH4E7aKQNJXicKetQUaoaYNsivNODeesP80PughOWU86phlv35gZAx843fd3nOp9rDld5MAYdKfGrW83AZKGNKD472lU6CAzSgGJVKonFNvFnQwB'
+
+In this file we have 4 functions for our API views. API register user and receive access token
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def register
+
+API get a token using user’s username and password.
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def token(request)
+
+Refresh a token with an old that is still not expired.
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def refresh_token(request)
+
+Revoke a token with a valid one.
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def revoke_token(request)
+
+There are also 3 more view classess for our web page:
+For Password change view, User registration view and user update profile view.
+ class PasswordsChangeView
+class UserRegisterView
+class UserEditView
+
+This function returns the password_ success html page. 
+def password_success(request)
+
 PIAZZA_API
  
+PIAZZA_API is our main project and is where we have all the setting and configurations  for our applications. 
+The main file here is the settings.py  file were we added the following code: 
+In the ALLOWED_HOSTS we add our application server IP address
+ALLOWED_HOSTS = ['10.61.64.32']
+
+In the INSTALLED_APPS we added our custom APPS:
+INSTALLED_APPS = [
+    
+    # Default apps
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+
+    # Custom Apps
+    'oauth2_provider', # The OAuth2
+    'rest_framework', # The REST API
+    'AUTH_SERVER', # Authentication Server Application
+    'RESOURCES_SERVER', # Resources Server Application 
+    'ckeditor', # Application for adding rich text to our post content
+]
 
 
 
+
+
+I the MIDDLEWARE sections we added:
+'oauth2_provider.middleware.OAuth2TokenMiddleware', # Auth2 Token
+MIDDLEWARE = [
+    'django.middleware.security.SecurityMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'oauth2_provider.middleware.OAuth2TokenMiddleware', # Auth2 Token
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+]
+
+AUTHENTICATION_BACKENDS also added:
+# Authentication backends, this specifies what authentication system should be used each time there is a request.
+# ------------------------------------------------------------------------------------------------------------------
+AUTHENTICATION_BACKENDS = ( 
+    'django.contrib.auth.backends.ModelBackend', 
+    'oauth2_provider.backends.OAuth2Backend', 
+)
+
+
+At the end of the settings.py file we also added some static variables:
+# Static files (CSS, JavaScript, Images)
+# https://docs.djangoproject.com/en/3.0/howto/static-files/
+
+STATIC_URL = '/static/'
+LOGIN_REDIRECT_URL = 'home'
+LOGOUT_REDIRECT_URL = 'home'
+
+# Set the time for a token to expire in 10 hours = 10 * 60 minutes = 10 * 60 * 60 secondes (36000 sec) 
+# BY CHANGING THAT VALUE WE CAN DECITE HOW LONG AN ACCESS TOKEN IS VALID FOR.
+OAUTH2_PROVIDER = {
+        'ACCESS_TOKEN_EXPIRE_SECONDS': 36000,
+ }
+
+By changing this value we decide for the token’s expiration time in seconds. 
+        'ACCESS_TOKEN_EXPIRE_SECONDS': 36000,
+In the urls.py file we have added these urls:
+urlpatterns = [
+    
+    # This will be our django admin page url http://10.61.64.32:8000/admin
+    path('admin/', admin.site.urls),
+
+    # PIAZZA website urls for home page and for registering members on the website
+    # http://10.61.64.32:8000/article/<int:pk>
+    # http://10.61.64.32:8000/article/<int:pk>/edit
+    # http://10.61.64.32:8000/article/<int:pk>/delete
+    # http://10.61.64.32:8000/article/add_post
+    path('', include('RESOURCES_SERVER.urls')),
+    
+     
+    # We just created a new URL in the form http://10.61.64.32:8000/o where o is the resource for performing the authentication phase (“o” for “oAuth”).
+    path('o/', include('oauth2_provider.urls', namespace='oauth2_provider')), 
+    
+    # The Authorosation server api url endpoints are on the AUTH_SERVER.urls.py file
+    # http://10.61.64.32:8000/auth/register/
+    # http://10.61.64.32:8000/auth/token/
+    # http://10.61.64.32:8000/auth/token/refresh/
+    # http://10.61.64.32:8000/auth/token/revoke/
+    path('auth/', include('django.contrib.auth.urls')),
+    path('auth/', include('AUTH_SERVER.urls')),
+    
+    
+    # These will be our root API url :                           http://10.61.64.32:8000/api
+    # This will be trhe url for our API endpoint for posts       http://10.61.64.32:8000/api/post
+    # This will be trhe url for our API endpoint for comments    http://10.61.64.32:8000/api/comment
+    # This will be trhe url for our API endpoint for likes       http://10.61.64.32:8000/api/like
+    path('api/', include(router.urls)),
+    
+
+]
 
 
 
@@ -749,19 +878,226 @@ RESOURCES_SERVER
  
  
 
+In the admin.py file we register our models so they can appear in the Django admin page:
+# RESOURCE SERVER ADMIN FILE
+# ---------------------------------------------------------------------------------
+
+from django.contrib import admin
+from .models import Post, Comment,  Profile , Topic
+
+admin.site.register(Post)
+admin.site.register(Comment)
+admin.site.register(Topic)
+admin.site.register(Profile)
+
+
+
+
+
+In the forms.py fil
+We have 3 forms classes for aour Models that will bne used in our PIAZZA website forms.
+Form creating a post in PIAZZA wall.
+class PostForm(forms.ModelForm)
+
+form for editing or updating a post.
+class EditForm(forms.ModelForm)
+
+form for adding a comment on a post.
+class CommentForm(forms.ModelForm)
+
+
+In the urls.py we added : 
+urlpatterns = [
+    
+    path('', HomeView.as_view(), name='home'),
+    path('article/<int:pk>', ArticleDetailView.as_view(), name='article_details'),
+    path('article/<int:pk>/edit', UpdatePostView.as_view(), name='update_post'),
+    path('article/<int:pk>/delete', DeletePostView.as_view(), name='delete_post'),
+    path('add_post/', AddPostView.as_view(), name='add_post'),
+    path('add_topic/', AddTopicView.as_view(), name='add_topic'),
+    path('topic/<str:topic>', TopicView, name='topic'),
+    path('topic_list/', TopicListView, name='topic_list'),
+    path('like/<int:pk>', LikeView, name='like_post'),
+    path('article/<int:pk>/add_comment/', AddCommentView.as_view(), name='add_comment'),
+
+]
+
+
+
+
+
+
+In the serializers.py  file we have 3 classes for our 3 models: Post, Topic, Comment Serializers. 
+class CommentSerializer(serializers.ModelSerializer)
+class PostSerializer(serializers.ModelSerializer):
+class TopicSerializer(serializers.ModelSerializer):
+
+In our models.py file we have our modls for Post, Topic and Comment also made a model Profile which has not properly been developed. Is just for a future update so we can easily manage user’s profiles and add more features such as user profile picture…
+Model for Topic. 
+class Topic(models.Model): 
+
+    name = models.CharField(max_length=100)
+    
+    def __str__(self):
+        return  self.name
+
+    def get_absolute_url(self):
+        return reverse('home')
+    
+
+# Here we create a list of topics. Everytime a topic is created it is getting added to the topics_list 
+# and  we pass that list as choices ot our "Post" model "topic" field. 
+topics = Topic.objects.all().values_list('name', 'name')
+
+topics_list = []
+
+for item in topics:
+    topics_list.append(item)
+
+
+
+
+
+
+
+
+Model for Post. This is a big model as is our main model and other action as Comments for example are performed on the Posts. 
+class Post(models.Model):
+
+STATUS = (
+        ('LIVE', 'LIVE'),
+        ('EXPIRED', 'EXPIRED'),
+    )
+
+    
+    title = models.CharField(max_length=100)                                                #<--------  Post title | Using a validator here to check if post title is unique
+    title_tag = models.CharField(max_length=255, default='')                                #<--------  Post title_tag (labe this will show on the web browser tab)
+    topic = models.CharField(max_length=100, choices=topics_list)                           #<--------  Post topic is a field that is a model itself and categorises the post to a topic...
+    date = models.DateTimeField(default=timezone.now)                                       #<--------  Post date creation
+    expiration_date = models.DateTimeField(default=timezone.now)                            #<--------  Post expiration date
+    content = RichTextField(blank=True, null=True)                                          #<--------  Post content                                                                   
+    author = models.ForeignKey(User, on_delete=models.CASCADE, blank=True, null=True )      #<--------  Post author - User that created the post
+    status = models.CharField(max_length=7, choices=STATUS, default="LIVE")                 #<--------  Post status (expired or not expired)
+    snippet = models.CharField(max_length=100)                                              #<--------  Post snipet (we can add this and will show in the main page)
+    likes = models.ManyToManyField(User, related_name='likes')                              #<--------  Post likes
+    
+    
+    # Functions that returs the status of a post 
+    # LIVE if the ost is still active and EXPIRED if post has expired.
+    def post_status(self):
+        if self.expiration_date > timezone.now():
+            new_status = "LIVE"
+            return new_status
+        else:
+            new_status = "EXPIRED"
+            return new_status
+
+    # Function that returns the total number of likes in a post
+    def total_likes(self):
+        return self.likes.count()
+
+    #this is a function to return us to the home page of our web app.
+    def get_absolute_url(self):
+        return reverse('home')
+    
+    # This class is used to order the posts by date. Latest post appears 1st.
+    class Meta:
+        ordering = ['-date']
+    
+    # Dajango admin: how does a post shows in the admin panel. (Post title | post author )
+    def __str__(self):
+        return str(self.id) + ' | ' + self.title + ' | ' + str(self.author) 
+
+
+Model for Comment: 
+# Model for the comments
+# ----------------------------------------------------------------------------------------------------------------------------------------
+class Comment(models.Model): 
+
+    post = models.ForeignKey(Post, related_name="post_comment", on_delete=models.CASCADE)
+    content = models.TextField()
+    date = models.DateTimeField(default=timezone.now)
+    author = models.ForeignKey(User, related_name="author_comment", on_delete=models.CASCADE)
+    
+    def get_absolute_url(self):
+        return reverse('home')
+    
+    class Meta:
+        ordering = ['-date']
+
+    def __str__(self):
+        return 'Comment: ' + str(self.id) + ' | Post id:' + str(self.post.id) + ' | This comment was created by: ' + str(self.author) + ' | on the post: ' + str(self.post.title)
+
+
+
+
+
+Model for Profile:
+# Model for the user profiles
+# Created that profile model for the users profile in order to be able to edit  and update a users profile. 
+# This has not been properly developed yet. It has just been created for  future website development.
+# It has only 2 fiels at the moment the user which is a one to on field with the authenticated User and has a bio text field to write users bio. 
+# more fields to be added in the future.
+# ----------------------------------------------------------------------------------------------------------------------------------------
+class Profile(models.Model): 
+
+    user = models.OneToOneField(User, null=True, on_delete=models.CASCADE)
+    bio = models.TextField()
+
+    def __str_(self):
+        return str(self.user)
+
+
+
+In the views.py file we have for the API and there are 3 of them:
+# VIEWS CLASESS FOR OUR PIAZZA API ENDPOINTS
+
+View for Post
+class PostViewSet(viewsets.ModelViewSet):
+
+View for Comment
+class CommentViewSet(viewsets.ModelViewSet): 
+
+View for Topic
+class TopicViewSet(viewsets.ModelViewSet): 
+
+
+
+And we have 5 view classes for different views in our PIAZZA website as:
+# class for our web site add_post.html page: http://10.61.64.32:8000/add_post/
+class AddPostView(CreateView):
+
+# class for our web site add_comment.html page: http://10.61.64.32:8000/article/8/add_comment/
+class AddCommentView(CreateView):
+    model= Comment
+
+# class for our web site update_post.html page: http://10.61.64.32:8000/article/7/edit  #<----- needs to have the post id at the end as we edit a specific post
+class UpdatePostView(UpdateView):
+
+# class for our web site delete_post.html page: http://10.61.64.32:8000/article/7/delete  #<----- needs to have the post id at the end as we delete a specific post
+class DeletePostView(DeleteView):
+
+# class for our web site add_topic.html page: http://10.61.64.32:8000/add_topic/
+class AddTopicView(CreateView):
+
+and 3 functions:
+def TopicView(request, topic):
+
+# Function view for our web site topic_list.html page: http://10.61.64.32:8000/topic_list/
+# NOT WORKING AT THE MOMENT 
+def TopicListView(request):
+
+def LikeView(request, pk):
+
+
+
+
+
+
+
+DATABASE TABLES
 We used the Django default database db.sqlite3 and these are the tables we have created for our models.
  
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -795,14 +1131,4 @@ BUILDING THE PIAZZA WEBSITE (RESOURCES_SERVER)
 [8]   John Elder from Codemy.com for Django tutorial for building a blog with Django https://www.youtube.com/watch?v=B40bteAMM_M&list=PLCC34OHNcOtr025c1kHSPrnP18YPB-NFi&ab_channel=Codemy.com
 [9]    LogRocket Blog: https://blog.logrocket.com/use-django-rest-framework-to-build-a-blog/
 [10]   https://github.com/codingforentrepreneurs/Blog-API-with-Django-Rest-Framework 
-[11]    
-[12] 
-[13]  
-[14] 
-
-
-
-
-
-
-
+[11]    https://github.com/CoreyMSchafer/code_snippets/tree/master/Django_Blog 
